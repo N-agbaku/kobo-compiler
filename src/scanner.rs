@@ -36,16 +36,100 @@ impl Scanner {
     }
 
     fn scan_token(&mut self) {
-        // TODO(you): recognise one token. Spec 1.2 lists every token type, 1.1 covers
-        //            whitespace and comments, and an unrecognised character is 'Character is
-        //            not part of any token.' (5.1).
-        todo!("scan_token")
+        let c = self.advance();
+
+        match c {
+            '(' => self.add(TokenType::LParen),
+            ')' => self.add(TokenType::RParen),
+            '{' => self.add(TokenType::LBrace),
+            '}' => self.add(TokenType::RBrace),
+            ',' => self.add(TokenType::Comma),
+            ';' => self.add(TokenType::Semicolon),
+
+            '+' => self.add(TokenType::Plus),
+            '-' => self.add(TokenType::Minus),
+            '*' => self.add(TokenType::Star),
+
+            '!' => {
+                if self.matches('=') {
+                    self.add(TokenType::BangEqual);
+                } else {
+                    self.add(TokenType::Bang);
+                }
+            }
+
+            '=' => {
+                if self.matches('=') {
+                    self.add(TokenType::EqualEqual);
+                } else {
+                    self.add(TokenType::Equal);
+                }
+            }
+
+            '>' => {
+                if self.matches('=') {
+                    self.add(TokenType::GreaterEqual);
+                } else {
+                    self.add(TokenType::Greater);
+                }
+            }
+
+            '<' => {
+                if self.matches('=') {
+                    self.add(TokenType::LessEqual);
+                } else {
+                    self.add(TokenType::Less);
+                }
+            }
+
+            '/' => {
+                if self.matches('/') {
+                    while self.peek() != '\n' && !self.at_end() {
+                        self.advance();
+                    }
+                } else {
+                    self.add(TokenType::Slash);
+                }
+            }
+
+            ' ' | '\r' | '\t' => {}
+
+            '\n' => {
+                self.line += 1;
+            }
+
+            '"' => self.string(),
+
+            c if c.is_ascii_digit() => self.number(),
+
+            c if c.is_ascii_alphabetic() || c == '_' => self.identifier(),
+
+            _ => {
+                self.error(self.line, "Character is not part of any token.");
+            }
+        }
     }
 
     fn string(&mut self) {
-        // TODO(you): scan a string literal. A string may span lines (1.5); an unterminated one
-        //            is reported at the line it opened on (5.1).
-        todo!("string")
+        let opening_line = self.line;
+
+        while self.peek() != '"' && !self.at_end() {
+            if self.peek() == '\n' {
+                self.line += 1;
+            }
+
+            self.advance();
+        }
+
+        if self.at_end() {
+            self.error(opening_line, "String is never closed.");
+            return;
+        }
+
+        // Consume the closing quote.
+        self.advance();
+
+        self.add(TokenType::Str);
     }
 
     fn number(&mut self) {
