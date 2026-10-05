@@ -32,7 +32,14 @@ impl Scanner {
         }
 
         self.start = self.current;
-        self.add(TokenType::Eof);
+
+        let eof_line = self.tokens.last().map_or(1, |token| token.line);
+
+        self.tokens.push(Token {
+            kind: TokenType::Eof,
+            lexeme: String::new(),
+            line: eof_line,
+        });
     }
 
     fn scan_token(&mut self) {
